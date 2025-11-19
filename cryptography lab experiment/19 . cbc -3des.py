@@ -1,42 +1,42 @@
-from Crypto.Cipher import DES3
-from Crypto.Random import get_random_bytes
-import base64
+# --- Simple 64-bit block XOR-based block cipher (fake 3DES for demo) ---
 
-def pad(data):
-    padding_len = 8 - (len(data) % 8)
-    return data + bytes([padding_len]) * padding_len
+def simple_block_encrypt(block, key):
+    return block ^ key  # XOR = simplified encryption
 
-def unpad(data):
-    return data[:-data[-1]]
+def simple_block_decrypt(block, key):
+    return block ^ key  # symmetric
 
-# --- Encryption ---
-def triple_des_encrypt_cbc(plaintext, key, iv):
-    cipher = DES3.new(key, DES3.MODE_CBC, iv)
-    padded = pad(plaintext)
-    encrypted = cipher.encrypt(padded)
-    return encrypted
+# --- CBC MODE IMPLEMENTATION ---
 
-# --- Decryption ---
-def triple_des_decrypt_cbc(ciphertext, key, iv):
-    cipher = DES3.new(key, DES3.MODE_CBC, iv)
-    decrypted = cipher.decrypt(ciphertext)
-    return unpad(decrypted)
+def encrypt_cbc(plaintext_blocks, key, iv):
+    ciphertext = []
+    prev = iv
+    for block in plaintext_blocks:
+        xored = block ^ prev
+        enc = simple_block_encrypt(xored, key)
+        ciphertext.append(enc)
+        prev = enc
+    return ciphertext
 
-# ------------------ MAIN -------------------
+def decrypt_cbc(ciphertext_blocks, key, iv):
+    plaintext = []
+    prev = iv
+    for block in ciphertext_blocks:
+        dec = simple_block_decrypt(block, key)
+        orig = dec ^ prev
+        plaintext.append(orig)
+        prev = block
+    return plaintext
 
-# 24-byte (192-bit) key for 3DES
-key = DES3.adjust_key_parity(get_random_bytes(24))
+# ------ DEMO ------
 
-# 8-byte IV for CBC mode
-iv = get_random_bytes(8)
+key = 0xAABBCCDDEEFF1122
+iv  = 0x1234567890ABCDEF
 
-plaintext = b"THIS IS A TOP SECRET MESSAGE"
+plaintext = [0x1111111111111111, 0x2222222222222222]
 
-print("Key: ", base64.b64encode(key).decode())
-print("IV:  ", base64.b64encode(iv).decode())
+cipher = encrypt_cbc(plaintext, key, iv)
+print("Ciphertext:", [hex(c) for c in cipher])
 
-ciphertext = triple_des_encrypt_cbc(plaintext, key, iv)
-print("\nEncrypted (Base64):", base64.b64encode(ciphertext).decode())
-
-decrypted = triple_des_decrypt_cbc(ciphertext, key, iv)
-print("\nDecrypted:", decrypted.decode())
+decrypted = decrypt_cbc(cipher, key, iv)
+print("Decrypted :", [hex(p) for p in decrypted])
