@@ -33,18 +33,17 @@ def affine_decrypt(ciphertext, a, b):
             result += char
     return result
 
-def main():
-    print("=== Affine Cipher ===")
-    print("Valid 'a': 1,3,5,7,9,11,15,17,19,21,23,25")
-    choice = input("'e' for encrypt, 'd' for decrypt: ").lower()
-    text = input("Enter text: ")
-    a = int(input("Enter a: "))
-    b = int(input("Enter b: "))
-    
-    if choice == 'e':
-        print(f"Encrypted: {affine_encrypt(text, a, b)}")
-    else:
-        print(f"Decrypted: {affine_decrypt(text, a, b)}")
 
-if __name__ == "__main__":
-    main()
+print("=== Affine Cipher ===")
+print("Valid 'a': 1,3,5,7,9,11,15,17,19,21,23,25")
+choice = input("'e' for encrypt, 'd' for decrypt: ").lower()
+text = input("Enter text: ")
+a = int(input("Enter a: "))
+b = int(input("Enter b: "))
+    
+if choice == 'e':
+    print(f"Encrypted: {affine_encrypt(text, a, b)}")
+else:
+    print(f"Decrypted: {affine_decrypt(text, a, b)}")
+
+
