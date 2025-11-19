@@ -1,48 +1,40 @@
-from Crypto.PublicKey import RSA, DSA
-from Crypto.Signature import pkcs1_15, DSS
-from Crypto.Hash import SHA256
-from Crypto.Random import get_random_bytes
+# --------------------------------
+# RSA Digital Signature (No Modules)
+# --------------------------------
 
-# -----------------------------
-# Message
-# -----------------------------
-message = b"Cryptography Signature Test"
-h = SHA256.new(message)
+# Key generation (small demo primes)
+p = 11
+q = 13
+n = p * q
+phi = (p - 1) * (q - 1)
 
-# ======================================================
-#                  RSA SIGNATURE
-# ======================================================
+e = 7            # public exponent
+d = 103          # private exponent (modular inverse of e mod phi)
 
-# Generate RSA key pair
-rsa_key = RSA.generate(2048)
-rsa_public = rsa_key.publickey()
+# Simple hash function (since no modules)
+def simple_hash(msg):
+    h = 0
+    for ch in msg:
+        h = (h + ord(ch)) % n
+    return h
 
-# RSA Sign
-rsa_signature = pkcs1_15.new(rsa_key).sign(h)
-print("RSA Signature:", rsa_signature.hex())
+# RSA signing
+def rsa_sign(message):
+    h = simple_hash(message)
+    signature = pow(h, d, n)      # h^d mod n
+    return signature
 
-# RSA Verify
-try:
-    pkcs1_15.new(rsa_public).verify(h, rsa_signature)
-    print("[RSA] Signature Verified Successfully")
-except:
-    print("[RSA] Signature Verification Failed")
+# RSA verification
+def rsa_verify(message, signature):
+    h = simple_hash(message)
+    check = pow(signature, e, n)  # sig^e mod n
+    return h == check
 
-# ======================================================
-#                  DSA SIGNATURE
-# ======================================================
 
-# Generate DSA key pair
-dsa_key = DSA.generate(2048)
-dsa_public = dsa_key.publickey()
+# Test
+msg = "HELLO"
+sig = rsa_sign(msg)
 
-# DSA Sign
-dsa_signature = DSS.new(dsa_key, 'fips-186-3').sign(h)
-print("\nDSA Signature:", dsa_signature.hex())
+print("RSA Signature:", sig)
+print("RSA Verified:", rsa_verify(msg, sig))
 
-# DSA Verify
-try:
-    DSS.new(dsa_public, 'fips-186-3').verify(h, dsa_signature)
-    print("[DSA] Signature Verified Successfully")
-except:
-    print("[DSA] Signature Verification Failed")
