@@ -1,66 +1,53 @@
-# DES Subkey Generation (K1–K16)
+# -------------------------------------------------------
+#    DES KEY SCHEDULE: 28-bit C, 28-bit D, 48-bit subkeys
+#    - No external libraries
+#    - First 24 bits from C
+#    - Next 24 bits from D
+# -------------------------------------------------------
 
-# PC-1 (64 → 56 bits)
-PC1 = [
-    57,49,41,33,25,17,9,
-    1,58,50,42,34,26,18,
-    10,2,59,51,43,35,27,
-    19,11,3,60,52,44,36,
-    63,55,47,39,31,23,15,
-    7,62,54,46,38,30,22,
-    14,6,61,53,45,37,29,
-    21,13,5,28,20,12,4
-]
-
-# PC-2 (56 → 48 bits)
-PC2 = [
-    14,17,11,24,1,5,
-    3,28,15,6,21,10,
-    23,19,12,4,26,8,
-    16,7,27,20,13,2,
-    41,52,31,37,47,55,
-    30,40,51,45,33,48,
-    44,49,39,56,34,53,
-    46,42,50,36,29,32
-]
-
-# Left shift schedule
-shifts = [1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1]
+# Left rotation of n-bit value
+def left_rotate(value, shift, bits):
+    return ((value << shift) & ((1 << bits) - 1)) | (value >> (bits - shift))
 
 
-# ---- Generate 16 DES Subkeys ----
-def generate_des_subkeys(key64):
-    # Apply PC-1
-    key56 = "".join(key64[i - 1] for i in PC1)
+# Generate 16 DES subkeys (48-bit)
+def generate_des_subkeys(key_56):
+    # Split into two 28-bit halves
+    C = (key_56 >> 28) & 0x0FFFFFFF
+    D = key_56 & 0x0FFFFFFF
 
-    # Split into C0 and D0
-    C = key56[:28]
-    D = key56[28:]
+    # Standard DES shift schedule
+    shifts = [1,1,2,2,2,2,2,2,1,2,2,2,2,2,2,1]
 
-    round_keys = []
+    subkeys = []
 
-    # Generate 16 keys
-    for r in range(16):
-        # Left shifts
-        shift_val = shifts[r]
-        C = C[shift_val:] + C[:shift_val]
-        D = D[shift_val:] + D[:shift_val]
+    for i in range(16):
+        # Left-shift both halves
+        C = left_rotate(C, shifts[i], 28)
+        D = left_rotate(D, shifts[i], 28)
 
-        # Combine
-        CD = C + D
+        # FIRST 24 bits from C (drop lower 4 bits)
+        C24 = (C >> 4) & 0xFFFFFF
 
-        # Apply PC-2 → 48-bit key
-        K = "".join(CD[i - 1] for i in PC2)
-        round_keys.append(K)
+        # NEXT 24 bits from D (drop lower 4 bits)
+        D24 = (D >> 4) & 0xFFFFFF
 
-    return round_keys
+        # 48-bit round key = 24 bits from C || 24 bits from D
+        Ki = (C24 << 24) | D24
+        subkeys.append(Ki)
+
+    return subkeys
 
 
-# Example 64-bit key
-key64 = "0001001100110100010101110111100110011011101111001101111111110001"
+# -------------------------
+# TEST
+# -------------------------
+key_56 = 0x133457799BBCDFF  # 56-bit key example
 
-subkeys = generate_des_subkeys(key64)
+print("KEY (56-bit) =", hex(key_56))
+print("\nGenerated 16 Subkeys:\n")
 
-print("=== DES Subkeys (K1–K16) ===")
-for i, k in enumerate(subkeys, start=1):
-    print(f"K{i}: {k}")
+subkeys = generate_des_subkeys(key_56)
+
+for i, k in enumerate(subkeys, 1):
+    print(f"Round {i:2}: {k:012x}")  # 48-bit = 12 hex digits
